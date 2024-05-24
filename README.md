@@ -1,56 +1,77 @@
-## This is UR5 controllers with acados
+## Nonlinear Model Predictive Control with Set Terminal Constraint for Safe Robot Motion Planning in the Presence of Humans
 
-## BASHRC check
-1. gedit ~/.bashrc
-2. edit path
-3. source ~/.bashrc
+This repository contains the source code for the experiments and results discussed in the paper titled "Nonlinear Model Predictive Control with Set Terminal Constraint for Safe Robot Motion Planning in the Presence of Humans". The code demonstrates the implementation of the algorithms described and provides tools to replicate our findings.
 
-## Testing with Real robot
-1. robot ip parameters: ip: 192.168.1.2/ mask:255.255.255.0/ gateway:192.168.1.1
-2. computer ip parameters: ip: 192.168.1.1 / mask:255.255.255.0/ gateway: 192.168.1.1
+## Dependencies
+To run the code, you need the following:
 
-## Install packages
-1. pip install pyyaml
-2. pip install rospkg
-3. pip install pandas
+- NumPy
+- rospkg
+- pyyaml
+- pandas
 
-## URSIM install
-install `ursim-5.9.4.10321232`
+Install all required packages using the following command:
+```bash
+pip install -r requirements.txt
+```
 
+## Implementation and Testing Environment
+The algorithms are implemented and tested using ROS on Ubuntu 20.04 with the real robot. Additionally, before testing on the real robot, they were simulated using the URSim simulator 'ursim-5.9.4.10321232' on Ubuntu 16.04. For installation instructions for URSim, please follow the guidelines available [here](https://www.universal-robots.com/download/?query=).
 
-## Code generate in matlab
-1. install acados
-2. in bashrc file add the following lines:
-export ACADOS_INSTALL_DIR=/home/robot/acados
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/robot/workspaces/WHOLE_ACADOS/acados_set_term_const/c_generated_code
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/robot/acados/lib
-export ACADOS_SOURCE_DIR=/home/robot/acados
-3. in matlab run the code
-4. Open your workspace in terminal, then run python file `insert_at_end.py`. Your generated files will be relocated to `solver` folder.
-5. Copy that solver to your workspace
+## Build and Setup
+Build the ROS environment with the following command:
+```bash
+catkin_make
+```
 
+Ensure the ROS environment is sourced correctly by adding the following lines to your `.bashrc` file:
+```bash
+gedit ~/.bashrc
+# Add the following line at the end of the file:
+# source /path/to/your/catkin_workspace/devel/setup.bash
+source ~/.bashrc
+```
 
-## Check feasibility
-rosrun point_feasibility point_feas
-rosrun set_feasibility set_feas
+## Testing the Algorithms
+To test the algorithms on the robot, first configure the TCP/IP parameters for both the robot and your computer:
+- **Robot IP parameters:** IP: 192.168.1.2 / Mask: 255.255.255.0 / Gateway: 192.168.1.1
+- **Computer IP parameters:** IP: 192.168.1.1 / Mask: 255.255.255.0 / Gateway: 192.168.1.1
 
-## PTC test
-1. ./start-ursim.sh
-2. roslaunch ur_modern_driver ur5_bringup.launch robot_ip:=192.168.1.2
-3. rosrun human_vrep test_human.py
-4. rosrun human_vrep human_sim
-5. rosrun mpc_low mpc_low_node
-6. rosrun mpc_high mpc_high_node
-7. rosrun mpc_low one_way.py
+Establish a connection between the robot and computer. Execute the following steps in different terminals:
 
+1. **Launch Robot Drivers:**
+   ```bash
+   roslaunch ur_modern_driver ur5_bringup.launch robot_ip:=192.168.1.2
+   ```
+2. **Test Human Movement Simulation:**
+   ```bash
+   rosrun human_vrep test_human.py
+   ```
+3. **Send Human Movement Data to Controller:**
+   ```bash
+   rosrun human_vrep human_sim
+   ```
+4. **Run Low-Level Controller:**
+   ```bash
+   rosrun mpc_low mpc_low_node
+   ```
+5. **Run PTC Controller:**
+   ```bash
+   rosrun PTC PTC_node
+   ```
+6. **Send Commands to the Robot:**
+   ```bash
+   rosrun mpc_low one_way.py
+   ```
 
-## STC test
-1. ./start-ursim.sh
-2. roslaunch ur_modern_driver ur5_bringup.launch robot_ip:=192.168.1.2
-3. rosrun human_vrep test_human.py
-4. rosrun human_vrep human_sim
-5. rosrun mpc_low mpc_low_node
-6. rosrun set_node set_node
-7. rosrun mpc_low one_way.py
+To test the STC controller, replace step 5 with:
+```bash
+rosrun STC set_node
+```
 
+## Additional Resources
+The human dataset used for experiments, known as AnDyDataset, can be accessed [here](https://andydataset.loria.fr/).
 
+## Contact
+For questions and feedback, please reach out to Aigerim Nurbayeva at aigerim.nurbayeva@nu.edu.kz
+```

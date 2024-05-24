@@ -6,26 +6,36 @@ import csv
 from std_msgs.msg import Float64MultiArray
 pos = []
 
-pos_183 = '/home/robot/workspaces/human_data/Participant_8410_csv/Participant_8410_Setup_A_Seq_1_Trial_3.xsens.bvh.csv'
+# Change the directory to the location of human dataset file
+pos_183 = 'Participant_8410_Setup_A_Seq_1_Trial_3.xsens.bvh.csv'
 pos_183 = pd.read_csv(pos_183, quoting=csv.QUOTE_NONNUMERIC)
 pos_183 = pos_183.to_numpy()
 
-print("start the high level controller!")
-
 class ENV:
     def __init__(self):
+        """
+        Initialize the class by setting up a ROS subscriber & publisher
+        """
+
         rospy.Subscriber('/flag', Float64MultiArray, self.callback)
         self.pub = rospy.Publisher('/Obstacle/human_spheres', Float64MultiArray, queue_size=1)
         self.iter = 0
         self.condition_h = [0]*2
 
     def callback(self, data):
+        """
+        Record the data received via ROS subscriber
+        """
+
         self.condition_h = data.data[0:2]
 
     def check_condition(self):
         return [int(self.condition_h[0]),self.condition_h[1]]
 
     def step(self,i):
+        """
+        Process and send human data to the controller for a specific step.
+        """
         point_array = [0]*45
         for a in range(14):
             point_array[3*a] = (pos_183[i][3*a])

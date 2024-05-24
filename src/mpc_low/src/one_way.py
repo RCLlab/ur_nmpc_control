@@ -6,10 +6,14 @@ from std_msgs.msg import Float64MultiArray, String
 import time
 from stream_tee import write_mat
 from initialization import set_init_pose
-
 from cascadi_solver import cascadi_solv
+
 class ENV:
     def __init__(self,run_name,term_mode):
+        """
+        Initialize the class by setting up a ROS subscriber & publisher
+        Define initial pose of the robot
+        """
         rospy.Subscriber('/info', Float64MultiArray, self.callback)
         self.pub = rospy.Publisher('/ur_driver/URScript', String, queue_size=1)
         self.flag_pub = rospy.Publisher('/flag', Float64MultiArray, queue_size=1)
@@ -25,10 +29,15 @@ class ENV:
         self.t_total = time.time()
         
     def callback(self, data):
+        """
+        Record the data received via ROS subscriber
+        """
         self.observation = data.data[0:169]
 
     def done(self):
-        # Check if arrived
+        """
+        Check if the robot successfully arrived at its goal configuration.
+        """
         arrive = False
         if self.max_diff<0.02 or self.forcestop>600:
             print("-----Arrived------", self.max_diff)
@@ -37,16 +46,17 @@ class ENV:
         return arrive
 
     def step(self):
-        self.forcestop+=1
-        
-        # Send velocity to the robot
+        """
+        Send a velocity command to the robot.
+        Collect all necessary variables
+        """
         vel = [self.observation[48],self.observation[49],self.observation[50],self.observation[51],self.observation[52],self.observation[53]]
         hello_str = "speedj(["+str(vel[0])+","+str(vel[1])+","+str(vel[2])+","+str(vel[3])+","+str(vel[4])+","+str(vel[5])+"],"+"5.0"+",1)" 
         elapsed_time = time.time() - self.t_total
         max_vell, lin_vell_limit_arr, ctp, min_dist = cascadi_solv(vel,self.observation[0:48])
         self.pub.publish(hello_str)
-        
-        # Collect all necessary variables
+        self.forcestop+=1
+       
         self.joint_poses.append(self.observation[0:6])
         self.human_poses.append(self.observation[6:48])
         self.mpc_sol.append(vel)
@@ -71,7 +81,9 @@ class ENV:
     
     
     def reset(self): 
-        # Sends the robot and human to initial poses
+        """
+        Reset the positions of the robot and human to their initial poses
+        """
         self.forcestop = 0
         print("reset")
         if self.first<1:
@@ -102,7 +114,7 @@ class ENV:
     
     
     def init_log_variables(self):
-        # Initialization of all variables
+        # Initialization all log variables
         self.observation = [1]*169
         self.joint_poses = []
         self.human_poses = []
@@ -127,8 +139,10 @@ class ENV:
 
     
     def save_log(self,save_iter):
-        # Save all variables in mat file
-        rec_dir = '/home/robot/workspaces/Big_Data/'
+        """
+        Save log variables to a MATLAB .mat file.
+        """
+        rec_dir = '/home/'
         os.chdir(rec_dir)
         write_mat('StabilityTests/' + self.term_mode +self.run_name,
                         {'ctp':self.ctp,

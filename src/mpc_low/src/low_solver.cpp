@@ -23,7 +23,7 @@ float dist_v(Eigen::Vector3f v, Eigen::Vector3f w){
 	return (v-w).norm();
 }
 
-// positions of test points in Cartesian space
+// the positions of test points in Cartesian space
 double z_sh = 0.1;
 Eigen::MatrixXf get_cpose(float theta_1, float theta_2, float theta_3, float theta_4, float theta_5, float theta_6){
 Eigen::MatrixXf mat(3,8);
@@ -33,7 +33,7 @@ mat << 0, 0.06*sin(theta_1), (-0.425*cos(theta_1)*cos(theta_2))/2+0.14*sin(theta
 	return mat;
 }
 
-// Velocities of test points
+// the velocities of test points
 Eigen::MatrixXf get_velocity(float theta_1, float theta_2, float theta_3, float theta_4, float theta_5, float theta_6, 
                              float u_1, float u_2, float u_3, float u_4, float u_5, float u_6){
 	Eigen::MatrixXf mat(21,1);
@@ -136,31 +136,6 @@ class GoalFollower
        for (int i=0; i<3; i++) cgoal[i] = joint_pose_values.data[21+i];
     }
 
-    // void change_goal_msg(const std_msgs::Float64MultiArray joint_pose_values) { 
-    //   for (int i=0; i<32; i++) from_high[i]= joint_pose_values.data[i];
-
-    //   for (int j=0; j<5; j++) {
-    //     for (int i=0; i<6; i++){
-    //       goal_queue[j*6+i] = joint_pose_values.data[i]*(0.050*(j+5)) + joint_pose_values.data[i+12]; 
-    //     }
-    //   }
-    //   for (int j=5; j<15; j++) {
-    //     for (int i=0; i<6; i++){ 
-    //       goal_queue[j*6+i] = joint_pose_values.data[i+6]*(0.050*(j-5)) + goal_queue[4*6+i]; 
-    //     }
-    //   }
-    //   for (int i=0; i<6; i++) goal[i] = goal_queue[i];
-    //   int correction_steps = 0;
-    //   int joint_corrections = 0;
-    //   for (int i = 0; i < 14; i++) {
-    //     joint_corrections = 0;
-    //     for (int j=0; j < 6; j++) {
-    //       if ((joint_position[j] - goal_queue[i*6+j])>(goal_queue[(i+1)*6+j] - goal_queue[i*6+j])) joint_corrections++;
-    //     }
-    //     if (joint_corrections>3) correction_steps++;
-    //   }
-    // }
-
     void change_states_msg(const std_msgs::Float64MultiArray::ConstPtr& msg){
       for (int i=0; i<6; i++) joint_position[i] = msg->data[i];
       for (int i=0; i<6; i++) joint_speed[i] = msg->data[i+6];
@@ -189,7 +164,7 @@ int main(int argc, char **argv)
   ros::Subscriber human_status = n.subscribe("/Obstacle/mpc_low_spheres", 1, &GoalFollower::change_obstacles_msg, &my_follower);
   double smallest_dist;
   double local_val;
-  // cposes of 7 test points:
+  // cartesian poses of 7 test points:
   double ctp[21] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
   // linear vels of 7 test points:
   double ctv[21] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};

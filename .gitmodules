@@ -7,3 +7,6 @@
 [submodule "universal_robot"]
 	path = universal_robot
 	url = https://github.com/ros-industrial/universal_robot
+[submodule "src/universal_robot "]
+	path = "src/universal_robot "
+	url = https://github.com/ros-industrial/universal_robot

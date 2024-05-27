@@ -16,7 +16,7 @@ pip install -r requirements.txt
 ```
 
 ## Implementation and Testing Environment
-The algorithms are implemented and tested using ROS on Ubuntu 20.04 with the real robot. Additionally, before testing on the real robot, they were simulated using the URSim simulator 'ursim-5.9.4.10321232' on Ubuntu 16.04. For installation instructions for URSim, please follow the guidelines available [here](https://www.universal-robots.com/download/?query=).
+The algorithms are implemented and tested using ROS on Ubuntu 20.04 with the real robot. Additionally, before testing on the real robot, they were simulated using the URSim simulator 'ursim-5.9.4.10321232'. For installation instructions for URSim, please follow the guidelines available [here](https://www.universal-robots.com/download/?query=).
 
 ## Build and Setup
 Build the ROS environment with the following command:
@@ -33,11 +33,9 @@ source ~/.bashrc
 ```
 
 ## Testing the Algorithms
-To test the algorithms on the robot, first configure the TCP/IP parameters for both the robot and your computer:
-- **Robot IP parameters:** IP: 192.168.1.2 / Mask: 255.255.255.0 / Gateway: 192.168.1.1
-- **Computer IP parameters:** IP: 192.168.1.1 / Mask: 255.255.255.0 / Gateway: 192.168.1.1
+To test the algorithms on the robot, first configure the TCP/IP parameters for both the robot and your computer
 
-Establish a connection between the robot and computer. Execute the following steps in different terminals:
+Execute the following steps in different terminals:
 
 1. **Launch Robot Drivers:**
    ```bash

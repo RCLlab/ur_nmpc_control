@@ -58,7 +58,7 @@ class GoalFollower
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "STC");
+  ros::init(argc, argv, "joint_controller_high");
   ros::NodeHandle n;
   ROS_INFO("Node Started");
   //--------------------------------
@@ -68,7 +68,7 @@ int main(int argc, char **argv)
   double read_goal[2][6] = { 2.619, -0.958, -1.22, -1.518, -1.588, 0.5,
                               0.0, -2.0, -1.22, -1.518, -1.588, 0.5};
   
-  int horizon = 10;
+  int horizon = 5;
   int row_index = 1;
   double eta[2] = {1.85255, 4.53973};
   //------------------------------
@@ -105,7 +105,6 @@ int main(int argc, char **argv)
 
     // Check if arrived
     float max_diff = 0;
-    float dists[6]={0.0};
     for (int i = 0; i < 6; i++) {
         if (abs(current_joint_position[i] - current_joint_goal[i]) > max_diff) {
             max_diff = abs(current_joint_position[i] - current_joint_goal[i]); 

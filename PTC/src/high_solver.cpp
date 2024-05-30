@@ -37,13 +37,13 @@ class GoalFollower
     public: 
     // Data Members 
     ros::Publisher chatter_pub;
-    double human_sphere_predicted[56]={0}; 
+    double human_sph[56]={0}; 
     double goal[6] = {0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000};
     double joint_position[6] = {0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000};
   
     // Member Functions() 
     void change_obstacles_msg_predicted(const std_msgs::Float64MultiArray obstacle_data) { 
-      for (int i=0; i<56; i++) human_sphere_predicted[i] = obstacle_data.data[i];
+      for (int i=0; i<56; i++) human_sph[i] = obstacle_data.data[i];
     }
 
     void change_states_msg(const std_msgs::Float64MultiArray::ConstPtr& msg) { 
@@ -58,7 +58,7 @@ class GoalFollower
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "PTC");
+  ros::init(argc, argv, "joint_controller_high");
   ros::NodeHandle n;
   ROS_INFO("Node Started");
   //--------------------------------
@@ -68,7 +68,7 @@ int main(int argc, char **argv)
   double read_goal[2][6] = { 2.619, -0.958, -1.22, -1.518, -1.588, 0.5,
                               0.0, -2.0, -1.22, -1.518, -1.588, 0.5};
 
-  int horizon = 5;
+  int horizon = 10;
   int row_index = 1;
   //------------------------------
   ros::Subscriber human_status = n.subscribe("/Obstacle/mpc_high_spheres", 1, &GoalFollower::change_obstacles_msg_predicted, &my_follower);
@@ -83,12 +83,13 @@ int main(int argc, char **argv)
   while (ros::ok())
   {
     double current_joint_position[6];
-    double current_human_position_predicted[56]={0};
+    double human_poses[56]={0};
     double current_joint_goal[6];
     for (int i = 0; i < 6; ++i) current_joint_position[ i ] = my_follower.joint_position[ i ];
     for (int i = 0; i < 6; ++i) current_joint_goal[ i ] = read_goal[row_index][i];
-    for (int i = 0; i < 56; ++i) current_human_position_predicted[ i ] = my_follower.human_sphere_predicted[ i ];
+    for (int i = 0; i < 56; ++i) human_poses[ i ] = my_follower.human_sph[ i ];
 
+    // get position of end-effector in Cartesian space
     Eigen::MatrixXf cgoal_mat = get_cpose(read_goal[row_index][0], read_goal[row_index][1], 
           read_goal[row_index][2], read_goal[row_index][3], read_goal[row_index][4], read_goal[row_index][5]);
     cgoal[0] = cgoal_mat.coeff(0, 7);
@@ -96,8 +97,15 @@ int main(int argc, char **argv)
     cgoal[2] = cgoal_mat.coeff(2, 7);
 
     double result[16]={0.0};
-    int status=myMpcSolver.solve_my_mpc(current_joint_position, current_human_position_predicted, current_joint_goal, cgoal, result);
-    if (status==4) for (int i=0; i<14; i++) result[i] = 0.0;
+    // Solver
+    // myMpcSolver=my_NMPC_solver(10,horizon);
+    int status=myMpcSolver.solve_my_mpc(current_joint_position, human_poses, current_joint_goal, cgoal, result);
+    if (status==4) {
+      for (int i=0; i<14; i++) result[i] = 0.0;
+      // myMpcSolver.reset_solver();
+      // myMpcSolver=my_NMPC_solver(20,horizon);
+      // int status=myMpcSolver.solve_my_mpc(current_joint_position, human_poses, current_joint_goal, cgoal, result);
+    }
     ROS_INFO("KKT %f; Status %i",result[14], status);
 
     // Check if arrived

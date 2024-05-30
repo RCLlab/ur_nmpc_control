@@ -23,7 +23,7 @@ float dist_v(Eigen::Vector3f v, Eigen::Vector3f w){
 	return (v-w).norm();
 }
 
-// the positions of test points in Cartesian space
+// positions of test points in Cartesian space
 double z_sh = 0.1;
 Eigen::MatrixXf get_cpose(float theta_1, float theta_2, float theta_3, float theta_4, float theta_5, float theta_6){
 Eigen::MatrixXf mat(3,8);
@@ -33,7 +33,7 @@ mat << 0, 0.06*sin(theta_1), (-0.425*cos(theta_1)*cos(theta_2))/2+0.14*sin(theta
 	return mat;
 }
 
-// the velocities of test points
+// Velocities of test points
 Eigen::MatrixXf get_velocity(float theta_1, float theta_2, float theta_3, float theta_4, float theta_5, float theta_6, 
                              float u_1, float u_2, float u_3, float u_4, float u_5, float u_6){
 	Eigen::MatrixXf mat(21,1);
@@ -70,59 +70,43 @@ class GoalFollower
     // Data Members 
     ros::Publisher info_pub;
     double robot_spheres[7] = {0.15, 0.15, 0.15, 0.08, 0.08, 0.12, 0.1};
-    
-    double human_sphere[58]= {10.0517,   0.5220,   1.0895,   0.1500,
-                              10.0658,   0.4526,   0.8624,   0.2500,
-                              10.0844,   0.7044,   0.9207,   0.1500,
-                              10.2083,   0.3075,   1.0208,   0.1500,
-                              10.0556,   0.6289,   0.7595,   0.1500,
-                              10.2024,   0.2732,   0.8478,   0.1500,
-                              10.0267,   0.5535,   0.5983,   0.1500,
-                              10.1965,   0.2389,   0.6749,   0.1500,
-                             -10.0208,   0.3964,   0.5857,   0.1000,
-                              10.0546,   0.2951,   0.6132,   0.1000,
-                             -10.1062,   0.2444,   0.5897,   0.1300,
-                             -10.0998,   0.3062,   0.5387,   0.1300,
-                              10.1908,   0.5290,   1.0016,   0.2000,
-                              10.2106,   0.4602,   0.6915,   0.2500,
-                              0, 0};
+    double human_sphere[56];
 
     double goal_queue[120] = {0.0000, -1.57, 0.0000, -1.57, 0.0000, 0.0000, 
                               0.0000, -1.57, 0.0000, -1.57, 0.0000, 0.0000, 
                               0.0000, -1.57, 0.0000, -1.57, 0.0000, 0.0000, 
                               0.0000, -1.57, 0.0000, -1.57, 0.0000, 0.0000,
+                              0.0000, -1.57, 0.0000, -1.57, 0.0000, 0.0000,
                               0.0000, -1.57, 0.0000, -1.57, 0.0000, 0.0000, 
                               0.0000, -1.57, 0.0000, -1.57, 0.0000, 0.0000, 
                               0.0000, -1.57, 0.0000, -1.57, 0.0000, 0.0000, 
                               0.0000, -1.57, 0.0000, -1.57, 0.0000, 0.0000,
                               0.0000, -1.57, 0.0000, -1.57, 0.0000, 0.0000,
+                              0.0000, -1.57, 0.0000, -1.57, 0.0000, 0.0000, 
+                              0.0000, -1.57, 0.0000, -1.57, 0.0000, 0.0000, 
+                              0.0000, -1.57, 0.0000, -1.57, 0.0000, 0.0000, 
                               0.0000, -1.57, 0.0000, -1.57, 0.0000, 0.0000,
                               0.0000, -1.57, 0.0000, -1.57, 0.0000, 0.0000,
-                              0.0000, -1.57, 0.0000, -1.57, 0.0000, 0.0000,
-                              0.0000, -1.57, 0.0000, -1.57, 0.0000, 0.0000,
-                              0.0000, -1.57, 0.0000, -1.57, 0.0000, 0.0000,
-                              0.0000, -1.57, 0.0000, -1.57, 0.0000, 0.0000,
-                              0.0000, -1.57, 0.0000, -1.57, 0.0000, 0.0000,
-                              0.0000, -1.57, 0.0000, -1.57, 0.0000, 0.0000,
-                              0.0000, -1.57, 0.0000, -1.57, 0.0000, 0.0000,
+                              0.0000, -1.57, 0.0000, -1.57, 0.0000, 0.0000, 
+                              0.0000, -1.57, 0.0000, -1.57, 0.0000, 0.0000, 
+                              0.0000, -1.57, 0.0000, -1.57, 0.0000, 0.0000, 
                               0.0000, -1.57, 0.0000, -1.57, 0.0000, 0.0000,
                               0.0000, -1.57, 0.0000, -1.57, 0.0000, 0.0000};
                               
     double goal[6] = {0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000};
-    double comand_vel[6] = {0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000};
     double joint_position[6] = {0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000};
-    double joint_speed[6] = {0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000};
     double from_high[32] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,10};
 
     // Member Functions() 
     void change_obstacles_msg(const std_msgs::Float64MultiArray obstacle_data){ 
-      for (int i=0; i<58; i++) human_sphere[i] = obstacle_data.data[i];
+      for (int i=0; i<56; i++) human_sphere[i] = obstacle_data.data[i];
     }
 
     void change_goal_msg(const std_msgs::Float64MultiArray joint_pose_values) 
     { 
-       
-       for (int j=0; j<5; j++) {
+      for (int i=0; i<32; i++) from_high[i]= joint_pose_values.data[i]; 
+
+      for (int j=0; j<5; j++) {
            for (int i=0; i<6; i++){ 
                 goal_queue[j*6+i] = joint_pose_values.data[i]*(0.050*(j+5)) + joint_pose_values.data[i+12]; 
            }
@@ -133,12 +117,10 @@ class GoalFollower
            }
        }
        for (int i=0; i<6; i++) goal[i] = goal_queue[i];
-       for (int i=0; i<3; i++) cgoal[i] = joint_pose_values.data[21+i];
     }
 
     void change_states_msg(const std_msgs::Float64MultiArray::ConstPtr& msg){
       for (int i=0; i<6; i++) joint_position[i] = msg->data[i];
-      for (int i=0; i<6; i++) joint_speed[i] = msg->data[i+6];
     }
 
     void SendInfo(const std_msgs::Float64MultiArray data){
@@ -152,9 +134,7 @@ int main(int argc, char **argv)
 {
   
   ros::init(argc, argv, "joint_controller_low");
-
   ros::NodeHandle n;
-
   ROS_INFO("Node Started");
   //--------------------------------
   GoalFollower my_follower;
@@ -164,16 +144,9 @@ int main(int argc, char **argv)
   ros::Subscriber human_status = n.subscribe("/Obstacle/mpc_low_spheres", 1, &GoalFollower::change_obstacles_msg, &my_follower);
   double smallest_dist;
   double local_val;
-  // cartesian poses of 7 test points:
-  double ctp[21] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-  // linear vels of 7 test points:
-  double ctv[21] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
   double ctv_linear[7] = {0,0,0,0,0,0,0};
   double min_dist[7] = {10000, 10000, 10000, 10000, 10000, 10000, 10000};
   ros::Rate loop_rate(20);
-
-  clock_t begin = clock();
-  double time_spent_mpc = 0;
 
   my_NMPC_solver myMpcSolver=my_NMPC_solver(10, 5);
 
@@ -192,7 +165,8 @@ int main(int argc, char **argv)
     for (int i = 0; i < 56; ++i) current_human_position[i] = my_follower.human_sphere[i];
 
     // Advance the goal
-    for (int j=0; j<14; j++) for (int i=0; i<6; i++) my_follower.goal_queue[j*6+i] = my_follower.goal_queue[(j+1)*6+i]; 
+
+    for (int j=0; j<15; j++) for (int i=0; i<6; i++) my_follower.goal_queue[j*6+i] = my_follower.goal_queue[(j+1)*6+i]; 
     for (int i=0; i<6; i++) my_follower.goal_queue[14*6+i] = my_follower.goal_queue[13*6+i];
 
     //******************* get_min_dist **********************
@@ -211,9 +185,6 @@ int main(int argc, char **argv)
     for (int j = 0; j < 7; j++) {
       Eigen::Vector3f w;
       w = mat2.col(j+1).transpose();
-      ctp[j*3+0] = w[0];
-      ctp[j*3+1] = w[1];
-      ctp[j*3+2] = w[2];
       for (int k = 0; k < 14; k++) {
         Eigen::Vector3f p(my_follower.human_sphere[k*4+0], my_follower.human_sphere[k*4+1], my_follower.human_sphere[k*4+2]);
         local_val = dist_v(w, p) - my_follower.robot_spheres[j] - my_follower.human_sphere[k*4+3];
@@ -227,15 +198,11 @@ int main(int argc, char **argv)
 
     double result[16]={0.0};
     double trajectory[66]={0.0};
+    ROS_INFO("From high %.3f\n", my_follower.from_high[0]);
+    
     if (smallest_dist >= 0.00 && my_follower.from_high[0]!=0.0) {
-      clock_t begin_mpc = clock();
       int status=myMpcSolver.solve_my_mpc(current_joint_position, goal, current_human_position, cgoal, tracking_goal, result, trajectory);   
-
       if (status==4) for (int i=0; i<12; i++) result[i] = 0.0;
-      
-      clock_t end_mpc = clock();
-      double time_spent_mpc = (double)(end_mpc - begin_mpc) / CLOCKS_PER_SEC;
-
       } else for (int i=0; i<16; i++) result[i] = 0;
 
     //******************* get_min_velocity **********************
@@ -250,11 +217,7 @@ int main(int argc, char **argv)
     double temp_linear_vell = 0;
     
     for (int k=0; k<7; k++) {
-      ctv[k*3+0] = vell_mat.coeff(k*3+0,0);
-      ctv[k*3+1] = vell_mat.coeff(k*3+1,0);
-      ctv[k*3+2] = vell_mat.coeff(k*3+2,0);
       temp_linear_vell = sqrt(vell_mat.coeff(k*3 + 0,0)*vell_mat.coeff(k*3 + 0,0) + vell_mat.coeff(k*3 + 1,0)*vell_mat.coeff(k*3 + 1,0) + vell_mat.coeff(k*3 + 2,0)*vell_mat.coeff(k*3 + 2,0));
-      ctv_linear[k] = temp_linear_vell;
       max_vell[k] = temp_linear_vell;
       if (max_linear_vell < temp_linear_vell) max_linear_vell = temp_linear_vell;
     }
@@ -274,33 +237,30 @@ int main(int argc, char **argv)
 
     if (lin_vell_scale<1.0) for (int i = 0; i < 6; i++) result[i] = result[i]*lin_vell_scale;
 
-    ROS_INFO("Max lin vell %.3f, Vel Index %.3f,SD %.3f\n", max_linear_vell, lin_vell_scale, smallest_dist);
+    vell_mat = get_velocity(current_joint_position[0], current_joint_position[1], 
+                                            current_joint_position[2], current_joint_position[3],
+                                            current_joint_position[4], current_joint_position[5],
+                                            result[0], result[1], result[2],
+                                            result[3], result[4], result[5]);
 
-    clock_t end = clock();
-    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+    for (int k=0; k<7; k++) {
+      temp_linear_vell = sqrt(vell_mat.coeff(k*3 + 0,0)*vell_mat.coeff(k*3 + 0,0) + vell_mat.coeff(k*3 + 1,0)*vell_mat.coeff(k*3 + 1,0) + vell_mat.coeff(k*3 + 2,0)*vell_mat.coeff(k*3 + 2,0));
+      ctv_linear[k] = temp_linear_vell;
+    }
+
+    ROS_INFO("Max lin vell %.3f, Vel Index %.3f,SD %.3f\n", max_linear_vell, lin_vell_scale, smallest_dist);
     
     // data sending
     std_msgs::Float64MultiArray whole_data;
     whole_data.data.clear();
     for (int i = 0; i < 6; i++) whole_data.data.push_back(current_joint_position[i]);
     for (int i = 0; i < 14; i++) for(int j = 0; j < 3; j++) whole_data.data.push_back(my_follower.human_sphere[i*4+j]);
-    for (int i = 0; i < 6; i++) whole_data.data.push_back(result[i]);
-    for (int i = 0; i < 21; i++) whole_data.data.push_back(ctp[i]);
-    for (int i = 0; i < 6; i++) whole_data.data.push_back(my_follower.goal[i]);
-    for (int i = 0; i < 6; i++) whole_data.data.push_back(my_follower.joint_speed[i]);
-    for (int i = 0; i < 3; i++) whole_data.data.push_back(result[12+i]);
-    for (int i = 0; i < 7; i++) whole_data.data.push_back(min_dist[i]);
+    for (int i = 0; i < 16; i++) whole_data.data.push_back(result[i]);
     whole_data.data.push_back(smallest_dist);
     whole_data.data.push_back(lin_vell_scale);
-    for (int i = 0; i < 30; i++) whole_data.data.push_back(my_follower.from_high[i]);
-    for (int i = 0; i < 21; i++) whole_data.data.push_back(ctv[i]);
-    for (int i = 0; i < 7; i++) whole_data.data.push_back(lin_vell_limit_arr[i]);
-    whole_data.data.push_back(my_follower.human_sphere[56]);
-    whole_data.data.push_back(time_spent);
+    for (int i = 0; i < 32; i++) whole_data.data.push_back(my_follower.from_high[i]);
     for (int i = 0; i < 7; i++) whole_data.data.push_back(ctv_linear[i]);
-    whole_data.data.push_back(my_follower.from_high[31]);
-    whole_data.data.push_back(my_follower.human_sphere[57]);
-    whole_data.data.push_back(time_spent_mpc);
+    for (int i = 0; i < 7; i++) whole_data.data.push_back(lin_vell_limit_arr[i]);
     my_follower.SendInfo(whole_data);
     ros::spinOnce();
     loop_rate.sleep();

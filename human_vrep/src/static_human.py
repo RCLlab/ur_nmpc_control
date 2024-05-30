@@ -29,13 +29,11 @@ class ENV:
         self.iter = 0
 
     def step(self):
-        point_array = [0]*45
+        point_array = [0]*42
         for a in range(14):
             point_array[3*a] = point_array_temp[3*a]
             point_array[3*a+1] = point_array_temp[3*a+1]
             point_array[3*a+2] = point_array_temp[3*a+2]
-        point_array[43] = 1
-        point_array[44] = 1
         obstacle_data = Float64MultiArray()
         obstacle_data.data = point_array
         self.pub.publish(obstacle_data)

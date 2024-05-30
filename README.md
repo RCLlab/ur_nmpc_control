@@ -2,6 +2,10 @@
 
 This repository contains the source code for the experiments and results discussed in the paper titled "Nonlinear Model Predictive Control with Set Terminal Constraint for Safe Robot Motion Planning in the Presence of Humans". The code demonstrates the implementation of the algorithms described and provides tools to replicate our findings.
 
+## Download the workspace
+```bash
+   git clone --recurse-submodules https://github.com/RCLlab/ur_nmpc_control
+   ```
 ## Dependencies
 To run the code, you need the following:
 

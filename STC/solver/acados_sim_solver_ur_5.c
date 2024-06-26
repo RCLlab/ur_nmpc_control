@@ -74,7 +74,7 @@ int ur_5_acados_sim_create(ur_5_sim_solver_capsule * capsule)
     bool tmp_bool;
 
     
-    double Tsim = 0.25;
+    double Tsim = 0.5;
 
     
     // explicit ode

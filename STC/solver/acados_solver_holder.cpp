@@ -52,20 +52,24 @@ public:
     acados_ocp_capsule = my_acados_ocp_capsule;
     
     int N = number_of_current_steps; // set variable step
-    double stemp_arr[] = {0.2500, 0.2500, 0.2500, 0.2500, 0.2500, 0.2500, 0.2500, 0.2500, 0.2500, 0.2500};
-    double* new_time_steps = stemp_arr;
+
+    double stemps_array[number_of_current_steps]={0.0}; // create array of maximum length
+    for (int i=0;i<number_of_current_steps;i++) stemps_array[i] = 0.25;
+
+    printf("Trying to create solver\n");
+    double* new_time_steps = stemps_array;
     int status = ur_5_acados_create_with_discretization(acados_ocp_capsule, N, new_time_steps);
     if (status){
         printf("ur_5_acados_create() returned status %d. Exiting.\n", status);
         exit(1);
     }
-  }
 
+  }
   int solve_my_mpc(double current_joint_position[6], double current_human_position[56], double current_joint_goal[6], double cgoal[3], double results[16], double eta) {
     int status = -1;
     int N = number_of_current_steps;
-    printf("\n*********N = %i*********",N);
 
+    printf("\n*********N = %i*********",N);
     ocp_nlp_config *nlp_config = ur_5_acados_get_nlp_config(acados_ocp_capsule);
     ocp_nlp_dims *nlp_dims = ur_5_acados_get_nlp_dims(acados_ocp_capsule);
     ocp_nlp_in *nlp_in = ur_5_acados_get_nlp_in(acados_ocp_capsule);
@@ -88,29 +92,28 @@ public:
     
     double lh[NH];
     double uh[NH];
-    for (int i=0;i<NH;i++) lh[i] = -10e6;
+    for (int i=0;i<NH;i++) lh[i] = -10e8;
     for (int i=0;i<NH;i++) uh[i] = 0.0;
 
-    // printf("*********\n\n %i %i %i\n*********\n\n", NSH, NSHN, NH);
-
+    printf("\n N = %i NSH = %i NSHN = %i NH = %i\n", N, NSH, NSHN, NH);
     double lbx0[NBX0] = {0.0};
     double ubx0[NBX0] = {0.0};
     for (int i=0;i<6;i++)  {
         lbx0[i] = current_joint_position[i];
         ubx0[i] = current_joint_position[i];
     }
-
+    
     // Set x0
     ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, 0, "idxbx", idxbx0);
     ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, 0, "lbx", lbx0);
     ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, 0, "ubx", ubx0);
 
     double pi = 3.1415926;
-    double lbx[6] = {-2*pi, -2*pi, -2*pi, -2*pi, -2*pi, -2*pi};
-    double ubx[6] = {2*pi, 2*pi, 2*pi, 2*pi, 2*pi, 2*pi};
+    double lbx[6] = {-2*pi, -pi, -2*pi, -2*pi, -2*pi, -2*pi};
+    double ubx[6] = { 2*pi,  0,   2*pi,  2*pi,  2*pi,  2*pi};
 
     double lbu[6] = {-1.2, -1.2, -1.2, -1.2, -1.2, -1.2};
-    double ubu[6] = {1.2, 1.2, 1.2, 1.2, 1.2, 1.2};
+    double ubu[6] = { 1.2,  1.2,  1.2,  1.2,  1.2,  1.2};
 
     double Vx[NY*NX] = {0.0};
     for (int i=0;i<NX;i++) Vx[NY*i+i] = 1.0;
@@ -132,8 +135,8 @@ public:
     for (int ii = NU; ii < (NU+NX); ii++) W[ii+ii*(NU+NX)] = 1;  // velocity weights
     for (int ii = 0; ii < (NX); ii++) WN[ii+ii*(NX)] = Tweight;
 
-    double zl[NSH]={0.0};
-    double zu[NSH]={0.0};
+    double zl[NSH] = {0.0};
+    double zu[NSH] = {0.0};
 
     double Zl[NSH] = {0.0};
     double Zu[NSH] = {0.0}; 
@@ -150,7 +153,7 @@ public:
         y_ref_N[i] = current_joint_goal[i];
     }
     double lh_e[1];
-    lh_e[0] = -1e10;
+    lh_e[0] = -eta;
     double uh_e[1];
     uh_e[0] = 0;
     // Update constraints
@@ -197,10 +200,8 @@ public:
             x_init[i*NX+j]=current_joint_position[j];
         }
     }
-
     // initial value for control input
     double u0[NU]={0.0};
-    
     // set parameters
     double p[NP] = {0.0};
     for (int i = 0; i < 56; i++) p[i] = current_human_position[i];

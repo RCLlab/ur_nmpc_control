@@ -45,20 +45,25 @@ private:
   // global data
   ur_5_solver_capsule * acados_ocp_capsule;
 public:
-  my_NMPC_solver(int n, int number_of_current_steps_specified) {
-    number_of_current_steps = number_of_current_steps_specified;
+  my_NMPC_solver(int n) {
+    number_of_current_steps = 5;
     num_steps = n; // set number of real-time iterations
     ur_5_solver_capsule * my_acados_ocp_capsule = ur_5_acados_create_capsule();
     acados_ocp_capsule = my_acados_ocp_capsule;
     
     int N = number_of_current_steps; // set variable step
-    double stemp_arr[] = {0.0500, 0.0500, 0.0500, 0.0500, 0.0500};
-    double* new_time_steps = stemp_arr;
+    
+    double stemps_array[number_of_current_steps]={0.0}; // create array of maximum length
+    for (int i=0;i<number_of_current_steps;i++) stemps_array[i] = 0.0500;
+    
+    printf("Trying to create solver\n");
+    double* new_time_steps = stemps_array;
     int status = ur_5_acados_create_with_discretization(acados_ocp_capsule, N, new_time_steps);
     if (status){
         printf("ur_5_acados_create() returned status %d. Exiting.\n", status);
         exit(1);
     }
+    
   }
 
   int solve_my_mpc(double current_joint_position[6], double current_joint_goal[6], double current_human_position[56], double cgoal[3],double tracking_goal[60], double results[9], double trajectory[66]) {
@@ -90,6 +95,8 @@ public:
     
     for (int i=0;i<NH;i++) lh[i] = -10e6;
     for (int i=0;i<NH;i++) uh[i] = 0.0;
+
+    printf("*********\n\n %i %i %i\n*********\n\n", NSH, NSHN, NH);
 
     double lbx0[NBX0] = {0.0};
     double ubx0[NBX0] = {0.0};
@@ -126,7 +133,7 @@ public:
     double weights_diag[NX] = {10.0, 10.0, 10.0, 10.0, 10.0, 10.0}; 
     for (int ii = 0; ii < (NX); ii++) W[ii+ii*(NU+NX)] = weights_diag[ii]; //position weights
     for (int ii = NU; ii < (NU+NX); ii++) W[ii+ii*(NU+NX)] = 1; //velocity weights
-    for (int ii = 0; ii < (NX); ii++) WN[ii+ii*(NX)] = 1.0;
+    for (int ii = 0; ii < (NX); ii++) WN[ii+ii*(NX)] = 1.0;// weights_diag[ii]*1.0;
 
     double zl[NSH]={0.0};
     double zu[NSH]={0.0};
@@ -183,7 +190,11 @@ public:
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, N, "yref", y_ref_N);
 
     double x_init[NX*(N+1)]={0.0};
-    for (int i=0; i<=N;i++) for (int j=0;j<6;j++) x_init[i*NX+j]=current_joint_position[j];
+    for (int i=0; i<=N;i++) {
+        for (int j=0;j<6;j++) {
+            x_init[i*NX+j]=current_joint_position[j];
+        }
+    }
 
     // initial value for control input
     double u0[NU]={0.0};
@@ -193,8 +204,10 @@ public:
     for (int i = 0; i < 56; i++) p[i] = current_human_position[i];
     p[56] = cgoal[0]; p[57] = cgoal[1]; p[58] = cgoal[2];
 
-    for (int ii = 0; ii <= N; ii++) ur_5_acados_update_params(acados_ocp_capsule, ii, p, NP);
-    
+    for (int ii = 0; ii <= N; ii++)
+    {
+        ur_5_acados_update_params(acados_ocp_capsule, ii, p, NP);
+    }
     // prepare evaluation
     int NTIMINGS = num_steps; // set number of real-time iterations
     double exec_time = 0.0;
@@ -223,18 +236,19 @@ public:
         ocp_nlp_out_get(nlp_config, nlp_dims, nlp_out, 0, "kkt_norm_inf", &kkt_norm_inf);
         ocp_nlp_eval_cost(nlp_solver,nlp_in,nlp_out); 
         ocp_nlp_get(nlp_config, nlp_solver,"cost_value", &ocp_cost);
-        // printf("solver SQP step %d, status %d times, cost %f", ii, status, ocp_cost);
+        printf("solver SQP step %d, status %d times, cost %f", ii, status, ocp_cost);
         if (ocp_cost<0.001) break;
     }
 
-    /* print solution and statistics */
     for (int ii = 0; ii <= nlp_dims->N; ii++)
         ocp_nlp_out_get(nlp_config, nlp_dims, nlp_out, ii, "x", &xtraj[ii*NX]);
     for (int ii = 0; ii < nlp_dims->N; ii++)
         ocp_nlp_out_get(nlp_config, nlp_dims, nlp_out, ii, "u", &utraj[ii*NU]);
-    
+
     printf("\nsolved ocp %d times, solution printed above\n\n", NTIMINGS);
     
+    //***************************************
+
     results[15] = 0.0; // NaN marker
     for (int i=0;i<12;i++) {
         if (utraj[i]!=utraj[i]) results[15] = 0.0;
@@ -244,12 +258,8 @@ public:
     //***************************************
     for (int i=0;i<66;i++) trajectory[i] = xtraj[i];
 
-    if (status == ACADOS_SUCCESS){
-        printf("ur_5_acados_solve(): SUCCESS!\n");
-    }
-    else{
-        printf("ur_5_acados_solve() failed with status %d.\n", status);
-    }
+    if (status == ACADOS_SUCCESS) printf("ur_5_acados_solve(): SUCCESS!\n");
+    else  printf("ur_5_acados_solve() failed with status %d.\n", status);
 
     // get solution
     ocp_nlp_out_get(nlp_config, nlp_dims, nlp_out, 0, "kkt_norm_inf", &kkt_norm_inf);
@@ -259,8 +269,7 @@ public:
            sqp_iter, NTIMINGS, exec_time*1000, kkt_norm_inf);
 
     return status;
-  } 
-
+  }  
   int reset_solver(){
     int status = -1;
     // free solver

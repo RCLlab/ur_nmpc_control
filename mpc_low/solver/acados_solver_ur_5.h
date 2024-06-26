@@ -63,7 +63,7 @@
 #define UR_5_NY0    12
 #define UR_5_NY     12
 #define UR_5_NYN    6
-#define UR_5_N      10
+#define UR_5_N      5
 #define UR_5_NH     103
 #define UR_5_NHN    0
 #define UR_5_NH0    0

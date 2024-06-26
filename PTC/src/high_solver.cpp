@@ -37,17 +37,17 @@ class GoalFollower
     public: 
     // Data Members 
     ros::Publisher chatter_pub;
-    double human_sph[56]={0}; 
-    double goal[6] = {0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000};
-    double joint_position[6] = {0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000};
+    double hp[56] = {0}; 
+    double goal[6] = {0};
+    double jp[6] = {0};
   
     // Member Functions() 
     void change_obstacles_msg_predicted(const std_msgs::Float64MultiArray obstacle_data) { 
-      for (int i=0; i<56; i++) human_sph[i] = obstacle_data.data[i];
+      for (int i=0; i<56; i++) hp[i] = obstacle_data.data[i];
     }
 
     void change_states_msg(const std_msgs::Float64MultiArray::ConstPtr& msg) { 
-       for (int i=0; i<6; i++) joint_position[i] = msg->data[i];
+       for (int i=0; i<6; i++) jp[i] = msg->data[i];
     }
 
     void SendVelocity(const std_msgs::Float64MultiArray joint_vel_values){
@@ -61,74 +61,48 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "joint_controller_high");
   ros::NodeHandle n;
   ROS_INFO("Node Started");
-  //--------------------------------
-  GoalFollower my_follower;
-  my_follower.chatter_pub = n.advertise<std_msgs::Float64MultiArray>("/HighController/mpc_high_positions", 1);
+  GoalFollower upd;
+  upd.chatter_pub = n.advertise<std_msgs::Float64MultiArray>("/HighController/mpc_high_positions", 1);
+  double read_goal[6] = {0.0, -2.0, -1.22, -1.518, -1.588, 0.5};
+
+  ros::Subscriber human_status = n.subscribe("/Obstacle/mpc_high_spheres", 1, &GoalFollower::change_obstacles_msg_predicted, &upd);
+  ros::Subscriber joint_status = n.subscribe("/joint_states_high", 1, &GoalFollower::change_states_msg, &upd);
   
-  double read_goal[2][6] = { 2.619, -0.958, -1.22, -1.518, -1.588, 0.5,
-                              0.0, -2.0, -1.22, -1.518, -1.588, 0.5};
-
-  int horizon = 10;
-  int row_index = 1;
-  //------------------------------
-  ros::Subscriber human_status = n.subscribe("/Obstacle/mpc_high_spheres", 1, &GoalFollower::change_obstacles_msg_predicted, &my_follower);
-  ros::Subscriber joint_status = n.subscribe("/joint_states_high", 1, &GoalFollower::change_states_msg, &my_follower);
-
+  int horizon = 10; 
   my_NMPC_solver myMpcSolver=my_NMPC_solver(10,horizon);
 
   std_msgs::Float64MultiArray joint_vel_values;
-  double cgoal[3];
   
-  ros::Rate loop_rate(2);
-  while (ros::ok())
-  {
-    double current_joint_position[6];
-    double human_poses[56]={0};
-    double current_joint_goal[6];
-    for (int i = 0; i < 6; ++i) current_joint_position[ i ] = my_follower.joint_position[ i ];
-    for (int i = 0; i < 6; ++i) current_joint_goal[ i ] = read_goal[row_index][i];
-    for (int i = 0; i < 56; ++i) human_poses[ i ] = my_follower.human_sph[ i ];
+  double cgoal[3];
+  Eigen::MatrixXf cgoal_mat = get_cpose(read_goal[0], read_goal[1], read_goal[2], read_goal[3], read_goal[4], read_goal[5]);
+      cgoal[0] = cgoal_mat.coeff(0, 7);
+      cgoal[1] = cgoal_mat.coeff(1, 7);
+      cgoal[2] = cgoal_mat.coeff(2, 7);
+  ros::Rate loop_rate(4);
 
-    // get position of end-effector in Cartesian space
-    Eigen::MatrixXf cgoal_mat = get_cpose(read_goal[row_index][0], read_goal[row_index][1], 
-          read_goal[row_index][2], read_goal[row_index][3], read_goal[row_index][4], read_goal[row_index][5]);
-    cgoal[0] = cgoal_mat.coeff(0, 7);
-    cgoal[1] = cgoal_mat.coeff(1, 7);
-    cgoal[2] = cgoal_mat.coeff(2, 7);
-
+  while (ros::ok()){
     double result[16]={0.0};
-    // Solver
-    // myMpcSolver=my_NMPC_solver(10,horizon);
-    int status=myMpcSolver.solve_my_mpc(current_joint_position, human_poses, current_joint_goal, cgoal, result);
-    if (status==4) {
-      for (int i=0; i<14; i++) result[i] = 0.0;
-      // myMpcSolver.reset_solver();
-      // myMpcSolver=my_NMPC_solver(20,horizon);
-      // int status=myMpcSolver.solve_my_mpc(current_joint_position, human_poses, current_joint_goal, cgoal, result);
-    }
+    int status=myMpcSolver.solve_my_mpc(upd.jp, upd.hp, read_goal, cgoal, result);
+    if (status==4) for (int i=0; i<14; i++) result[i] = 0.0;
     ROS_INFO("KKT %f; Status %i",result[14], status);
 
-    // Check if arrived
     float max_diff = 0;
-    for (int i = 0; i < 6; i++) {
-        if (abs(current_joint_position[i] - current_joint_goal[i]) > max_diff) {
-            max_diff = abs(current_joint_position[i] - current_joint_goal[i]); 
-        }
-    }
+    for (int i = 0; i < 6; i++) if (abs(upd.jp[i] - read_goal[i]) > max_diff) max_diff = abs(upd.jp[i] - read_goal[i]); 
     ROS_INFO("max_diff %f",max_diff);
 
     // prepare to send commands
     joint_vel_values.data.clear();
     for (int i = 0; i < 12; i++) joint_vel_values.data.push_back(result[i]);
-    for (int i = 0; i < 6; i++) joint_vel_values.data.push_back(current_joint_position[i]);
-    for (int i = 0; i < 6; i++) joint_vel_values.data.push_back(current_joint_goal[i]);
+    for (int i = 0; i < 6; i++) joint_vel_values.data.push_back(upd.jp[i]);
+    for (int i = 0; i < 6; i++) joint_vel_values.data.push_back(read_goal[i]);
     for (int i = 0; i < 3; i++) joint_vel_values.data.push_back(cgoal[i]);
     for (int i = 0; i < 4; i++) joint_vel_values.data.push_back(result[12+i]);
     joint_vel_values.data.push_back(max_diff);
-    my_follower.SendVelocity(joint_vel_values);
-    ros::spinOnce();
+    upd.SendVelocity(joint_vel_values);
+  
     loop_rate.sleep();
-  }
+    ros::spinOnce();
+	  }
   return 0;
 }
 

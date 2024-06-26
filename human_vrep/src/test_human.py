@@ -10,8 +10,6 @@ pos_183 = '/home/robot/workspaces/human_data/Participant_8410_csv/Participant_84
 pos_183 = pd.read_csv(pos_183, quoting=csv.QUOTE_NONNUMERIC)
 pos_183 = pos_183.to_numpy()
 
-print("start the high level controller!")
-
 class ENV:
     def __init__(self):
         rospy.Subscriber('/flag', Float64MultiArray, self.callback)
@@ -28,7 +26,7 @@ class ENV:
     def step(self,i):
         point_array = [0]*42
         for a in range(14):
-            point_array[3*a] = (pos_183[i][3*a])
+            point_array[3*a] = (pos_183[i][3*a])-0.5
             point_array[3*a+1] = (pos_183[i][3*a+1]) + 0.7
             point_array[3*a+2] = (pos_183[i][3*a+2]) - 1.2
         obstacle_data = Float64MultiArray()
@@ -38,7 +36,7 @@ class ENV:
 if __name__ == '__main__':
     rospy.init_node("human_poses_provider", anonymous=True)
     env = ENV()
-    i = 12500
+    i = 14500
     cond_temp=0
     rate = rospy.Rate(125) #hz
     msg = rospy.wait_for_message("/flag", Float64MultiArray)
@@ -47,7 +45,7 @@ if __name__ == '__main__':
             condition_h = env.check_condition()
             if condition_h[1]==1:
                 time.sleep(0.02)
-                i=12500
+                i=14500
             else:
                 env.step(i)
                 print(condition_h,i)

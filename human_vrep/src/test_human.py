@@ -5,9 +5,9 @@ import pandas as pd
 import csv
 from std_msgs.msg import Float64MultiArray
 
-pos_183 = '/home/robot/workspaces/human_data/Participant_8410_csv/Participant_8410_Setup_A_Seq_1_Trial_3.xsens.bvh.csv'
-pos_183 = pd.read_csv(pos_183, quoting=csv.QUOTE_NONNUMERIC)
-pos_183 = pos_183.to_numpy()
+human_pos = 'moving_human_data.csv'
+human_pos = pd.read_csv(human_pos, quoting=csv.QUOTE_NONNUMERIC)
+human_pos = human_pos.to_numpy()
 
 class ENV:
     def __init__(self):
@@ -25,9 +25,9 @@ class ENV:
     def step(self,i):
         point_array = [0]*42
         for a in range(14):
-            point_array[3*a] = (pos_183[i][3*a])-0.5
-            point_array[3*a+1] = (pos_183[i][3*a+1]) + 1.0
-            point_array[3*a+2] = (pos_183[i][3*a+2]) - 1.2
+            point_array[3*a] = (human_pos[i][3*a])-0.5
+            point_array[3*a+1] = (human_pos[i][3*a+1]) + 1.0
+            point_array[3*a+2] = (human_pos[i][3*a+2]) - 1.2
         obstacle_data = Float64MultiArray()
         obstacle_data.data = point_array
         self.pub.publish(obstacle_data)

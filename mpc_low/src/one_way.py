@@ -12,8 +12,7 @@ class ENV:
         self.pub = rospy.Publisher('/ur_driver/URScript', String, queue_size=1)
         self.flag_pub = rospy.Publisher('/flag', Float64MultiArray, queue_size=1)
         self.run_name = run_name
-        self.init_poses = [2.619, -0.958, -1.22, -1.518, -1.588, 0.5] #static human
-        # self.init_poses = [2.9, -1.2, -1.22, -1.518, -1.588, 0.5] #moving human
+        self.init_poses = [2.619, -0.958, -1.22, -1.518, -1.588, 0.5]
         self.term_mode = term_mode
         self.i = 0
         self.forcestop = 0
@@ -87,8 +86,6 @@ class ENV:
         self.diff = 10
 
     def save_log(self,save_iter):
-        rec_dir = '/home/robot/workspaces/Big_Data/'
-        os.chdir(rec_dir)
         write_mat('Tests/'+self.term_mode + '/'+self.run_name,
                         {'joint_positions': self.joint_poses,
                         'human_poses':self.human_poses,

@@ -183,6 +183,12 @@ int main(int argc, char **argv)
     if (smallest_dist >= 0.00 && upd.from_high[0]!=0.0) {
       clock_t begin_mpc = clock();
       int status = myMpcSolver.solve_my_mpc(upd.jp, goal, upd.human_sphere, cgoal, tracking_goal, result, trajectory);   
+      if (status > 0) {
+            ROS_INFO("Destroying solver object");
+            myMpcSolver.reset_solver();
+            myMpcSolver=my_NMPC_solver(5);
+            ROS_INFO("Solver recreated");
+      }
       if (status==4) for (int i=0; i<12; i++) result[i] = 0.0;
       } else for (int i=0; i<16; i++) result[i] = 0;
 

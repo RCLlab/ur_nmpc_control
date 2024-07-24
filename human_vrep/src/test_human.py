@@ -4,7 +4,6 @@ import time
 import pandas as pd
 import csv
 from std_msgs.msg import Float64MultiArray
-pos = []
 
 pos_183 = '/home/robot/workspaces/human_data/Participant_8410_csv/Participant_8410_Setup_A_Seq_1_Trial_3.xsens.bvh.csv'
 pos_183 = pd.read_csv(pos_183, quoting=csv.QUOTE_NONNUMERIC)
@@ -27,7 +26,7 @@ class ENV:
         point_array = [0]*42
         for a in range(14):
             point_array[3*a] = (pos_183[i][3*a])-0.5
-            point_array[3*a+1] = (pos_183[i][3*a+1]) + 0.7
+            point_array[3*a+1] = (pos_183[i][3*a+1]) + 1.0
             point_array[3*a+2] = (pos_183[i][3*a+2]) - 1.2
         obstacle_data = Float64MultiArray()
         obstacle_data.data = point_array
@@ -36,7 +35,7 @@ class ENV:
 if __name__ == '__main__':
     rospy.init_node("human_poses_provider", anonymous=True)
     env = ENV()
-    i = 14500
+    i = 10000
     cond_temp=0
     rate = rospy.Rate(125) #hz
     msg = rospy.wait_for_message("/flag", Float64MultiArray)
@@ -45,7 +44,7 @@ if __name__ == '__main__':
             condition_h = env.check_condition()
             if condition_h[1]==1:
                 time.sleep(0.02)
-                i=14500
+                i=10000
             else:
                 env.step(i)
                 print(condition_h,i)

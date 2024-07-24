@@ -1,7 +1,6 @@
 // standard
 #include <stdio.h>
 #include <stdlib.h>
-// acados
 #include "acados/utils/print.h"
 #include "acados/utils/math.h"
 #include "acados_c/ocp_nlp_interface.h"
@@ -44,6 +43,7 @@ private:
   int number_of_current_steps;
   // global data
   ur_5_solver_capsule * acados_ocp_capsule;
+
 public:
   my_NMPC_solver(int n, int number_of_current_steps_specified) {
     number_of_current_steps = number_of_current_steps_specified;
@@ -68,7 +68,8 @@ public:
   int solve_my_mpc(double current_joint_position[6], double current_human_position[56], double current_joint_goal[6], double cgoal[3], double results[16]) {
     int status = -1;
     int N = number_of_current_steps;
-    printf("\n*********N = %i*********",N);
+
+    printf("\n PTC *********N = %i*********",N);
     ocp_nlp_config *nlp_config = ur_5_acados_get_nlp_config(acados_ocp_capsule);
     ocp_nlp_dims *nlp_dims = ur_5_acados_get_nlp_dims(acados_ocp_capsule);
     ocp_nlp_in *nlp_in = ur_5_acados_get_nlp_in(acados_ocp_capsule);
@@ -86,16 +87,16 @@ public:
     int idxbu[NBU];
     for (int i=0;i<NBU;i++) idxbu[i] = i;
 
-    int idxbx_e[NBXN];
-    for (int i=0;i<NBXN;i++) idxbx_e[i] = i;
+    // int idxbx_e[NBXN];
+    // for (int i=0;i<NBXN;i++) idxbx_e[i] = i;
     
     int idxsh[NSH];
     for (int i=0;i<NSH;i++) idxsh[i]=i; 
     
     double lh[NH];
     double uh[NH];
-    for (int i=0;i<NH;i++) lh[i]=-10e8;
-    for (int i=0;i<NH;i++) uh[i]=0.0;
+    for (int i=0;i<NH;i++) lh[i] = -1e6;
+    for (int i=0;i<NH;i++) uh[i] = 0.0;
 
     printf("\n N = %i NSH = %i NSHN = %i NH = %i\n", N, NSH, NSHN, NH);
 
@@ -112,8 +113,8 @@ public:
     ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, 0, "ubx", ubx0);
 
     double pi = 3.1415926;
-    double lbx[6] = {-2*pi, -2*pi, -2*pi, -2*pi, -2*pi, -2*pi};
-    double ubx[6] = { 2*pi,  2*pi,   2*pi,  2*pi,  2*pi,  2*pi};
+    double lbx[6] = {-2*pi, -pi, -2*pi, -2*pi, -2*pi, -2*pi};
+    double ubx[6] = { 2*pi,  0,   2*pi,  2*pi,  2*pi,  2*pi};
 
     double lbu[6] = {-1.2, -1.2, -1.2, -1.2, -1.2, -1.2};
     double ubu[6] = { 1.2,  1.2,  1.2,  1.2,  1.2,  1.2};
@@ -133,7 +134,7 @@ public:
     double weights_diag[NX] = {10.0, 10.0, 10.0, 10.0, 10.0, 10.0}; 
     for (int ii = 0; ii < (NX); ii++) W[ii+ii*(NU+NX)] = weights_diag[ii];  //position weights
     for (int ii = NU; ii < (NU+NX); ii++) W[ii+ii*(NU+NX)] = 1;  // velocity weights
-    for (int ii = 0; ii < (NX); ii++) WN[ii+ii*(NX)] = -10e8;
+    for (int ii = 0; ii < (NX); ii++) WN[ii+ii*(NX)] = 1;
 
     double zl[NSH] = {0.0};
     double zu[NSH] = {0.0};
@@ -149,11 +150,8 @@ public:
         y_ref[i+6] = 0.0;
     }
     double y_ref_N[NYN];
-    for (int i=0;i<6;i++) {
-        y_ref_N[i] = current_joint_goal[i];
-        printf("y %i = %f", i,y_ref_N[i]);
-    }
-    // Update constraints
+    for (int i=0;i<6;i++) y_ref_N[i] = current_joint_goal[i];
+
     for (int ii = 0; ii < N; ii++){
         ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, ii, "idxbu", idxbu);
         ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, ii, "lbu", lbu);
@@ -166,7 +164,8 @@ public:
         ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, ii, "idxsh", idxsh);   
     }
 
-    ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, N, "idxbx", idxbx_e);
+
+    // ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, N, "idxbx", idxbx_e);
 
     // Set x0
     ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, 0, "lbx", lbx0);
@@ -224,7 +223,7 @@ public:
             ocp_nlp_out_set(nlp_config, nlp_dims, nlp_out, i, "x", x_init);
             ocp_nlp_out_set(nlp_config, nlp_dims, nlp_out, i, "u", u0);
         }
-        ocp_nlp_out_set(nlp_config, nlp_dims, nlp_out, N, "x", y_ref_N);
+        // ocp_nlp_out_set(nlp_config, nlp_dims, nlp_out, N, "x", y_ref_N);
         ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "rti_phase", &rti_phase);
         status = ur_5_acados_solve(acados_ocp_capsule);
         ocp_nlp_get(nlp_config, nlp_solver, "time_tot", &elapsed_time);

@@ -64,11 +64,11 @@ int main(int argc, char **argv)
   GoalFollower upd;
   upd.chatter_pub = n.advertise<std_msgs::Float64MultiArray>("/HighController/mpc_high_positions", 1);
   double read_goal[6] = {0.0, -2.0, -1.22, -1.518, -1.588, 0.5};
-
+  
+  int horizon = 10; 
   ros::Subscriber human_status = n.subscribe("/Obstacle/mpc_high_spheres", 1, &GoalFollower::change_obstacles_msg_predicted, &upd);
   ros::Subscriber joint_status = n.subscribe("/joint_states_high", 1, &GoalFollower::change_states_msg, &upd);
   
-  int horizon = 10; 
   my_NMPC_solver myMpcSolver=my_NMPC_solver(10,horizon);
 
   std_msgs::Float64MultiArray joint_vel_values;
@@ -78,16 +78,24 @@ int main(int argc, char **argv)
       cgoal[0] = cgoal_mat.coeff(0, 7);
       cgoal[1] = cgoal_mat.coeff(1, 7);
       cgoal[2] = cgoal_mat.coeff(2, 7);
+
   ros::Rate loop_rate(4);
 
   while (ros::ok()){
     double result[16]={0.0};
     int status=myMpcSolver.solve_my_mpc(upd.jp, upd.hp, read_goal, cgoal, result);
+    if (status > 0) {
+        ROS_INFO("Destroying solver object");
+        myMpcSolver.reset_solver();
+        myMpcSolver=my_NMPC_solver(10,horizon);
+        ROS_INFO("Solver recreated");
+    }
     if (status==4) for (int i=0; i<14; i++) result[i] = 0.0;
     ROS_INFO("KKT %f; Status %i",result[14], status);
 
     float max_diff = 0;
     for (int i = 0; i < 6; i++) if (abs(upd.jp[i] - read_goal[i]) > max_diff) max_diff = abs(upd.jp[i] - read_goal[i]); 
+
     ROS_INFO("max_diff %f",max_diff);
 
     // prepare to send commands

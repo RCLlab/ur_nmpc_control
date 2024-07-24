@@ -54,7 +54,7 @@ public:
     int N = number_of_current_steps; // set variable step
 
     double stemps_array[number_of_current_steps]={0.0}; // create array of maximum length
-    for (int i=0;i<number_of_current_steps;i++) stemps_array[i] = 0.25;
+    for (int i=0;i<number_of_current_steps;i++) stemps_array[i] = 0.2500;
 
     printf("Trying to create solver\n");
     double* new_time_steps = stemps_array;
@@ -69,7 +69,7 @@ public:
     int status = -1;
     int N = number_of_current_steps;
 
-    printf("\n*********N = %i*********",N);
+    printf("\n 1 STC  *********N = %i*********",N);
     ocp_nlp_config *nlp_config = ur_5_acados_get_nlp_config(acados_ocp_capsule);
     ocp_nlp_dims *nlp_dims = ur_5_acados_get_nlp_dims(acados_ocp_capsule);
     ocp_nlp_in *nlp_in = ur_5_acados_get_nlp_in(acados_ocp_capsule);
@@ -92,10 +92,11 @@ public:
     
     double lh[NH];
     double uh[NH];
-    for (int i=0;i<NH;i++) lh[i] = -10e8;
+    for (int i=0;i<NH;i++) lh[i] = -10e6;
     for (int i=0;i<NH;i++) uh[i] = 0.0;
 
     printf("\n N = %i NSH = %i NSHN = %i NH = %i\n", N, NSH, NSHN, NH);
+
     double lbx0[NBX0] = {0.0};
     double ubx0[NBX0] = {0.0};
     for (int i=0;i<6;i++)  {
@@ -149,9 +150,8 @@ public:
         y_ref[i+6] = 0.0;
     }
     double y_ref_N[NYN];
-    for (int i=0;i<6;i++) {
-        y_ref_N[i] = current_joint_goal[i];
-    }
+    for (int i=0;i<6;i++) y_ref_N[i] = current_joint_goal[i];
+
     double lh_e[1];
     lh_e[0] = -eta;
     double uh_e[1];
@@ -234,7 +234,7 @@ public:
             ocp_nlp_out_set(nlp_config, nlp_dims, nlp_out, i, "x", x_init); 
             ocp_nlp_out_set(nlp_config, nlp_dims, nlp_out, i, "u", u0);
         }
-        ocp_nlp_out_set(nlp_config, nlp_dims, nlp_out, N, "x", y_ref_N);
+        // ocp_nlp_out_set(nlp_config, nlp_dims, nlp_out, N, "x", y_ref_N);
         ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "rti_phase", &rti_phase);
         status = ur_5_acados_solve(acados_ocp_capsule);
         ocp_nlp_get(nlp_config, nlp_solver, "time_tot", &elapsed_time);

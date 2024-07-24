@@ -37,7 +37,7 @@ class GoalFollower
     public: 
     // Data Members 
     ros::Publisher chatter_pub;
-    double hp[56]={0}; 
+    double hp[56] = {0}; 
     double goal[6] = {0};
     double jp[6] = {0};
     
@@ -61,14 +61,12 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "joint_controller_high");
   ros::NodeHandle n;
   ROS_INFO("Node Started");
-  //--------------------------------
   GoalFollower upd;
   upd.chatter_pub = n.advertise<std_msgs::Float64MultiArray>("/HighController/mpc_high_positions", 1);
-
   double read_goal[6] = {0.0, -2.0, -1.22, -1.518, -1.588, 0.5};
   
-  int horizon = 5;
-  double eta = 0.051; // moving human eta
+  int horizon = 10;
+  double eta = 2.3; // moving human eta
   // double eta = 2.51283; // static human eta
   //------------------------------
   ros::Subscriber human_status = n.subscribe("/Obstacle/mpc_high_spheres", 1, &GoalFollower::change_obstacles_msg_predicted, &upd);
@@ -77,6 +75,7 @@ int main(int argc, char **argv)
   my_NMPC_solver myMpcSolver=my_NMPC_solver(10,horizon);
 
   std_msgs::Float64MultiArray joint_vel_values;
+
   double cgoal[3];
   Eigen::MatrixXf cgoal_mat = get_cpose(read_goal[0], read_goal[1], read_goal[2], read_goal[3], read_goal[4], read_goal[5]);
     cgoal[0] = cgoal_mat.coeff(0, 7);
@@ -84,21 +83,22 @@ int main(int argc, char **argv)
     cgoal[2] = cgoal_mat.coeff(2, 7);
 
   ros::Rate loop_rate(4);
-  while (ros::ok())
-  {
+
+  while (ros::ok()){
     double result[16]={0.0};
-    // Solver
     int status=myMpcSolver.solve_my_mpc(upd.jp, upd.hp, read_goal, cgoal, result, eta);
+    if (status > 0) {
+            ROS_INFO("Destroying solver object");
+            myMpcSolver.reset_solver();
+            myMpcSolver=my_NMPC_solver(10,horizon);
+            ROS_INFO("Solver recreated");
+      }
     if (status==4) for (int i=0; i<14; i++) result[i] = 0.0;
     ROS_INFO("KKT %f; Status %i",result[14], status);
 
-    // Check if arrived
     float max_diff = 0;
-    for (int i = 0; i < 6; i++) {
-        if (abs(upd.jp[i] - read_goal[i]) > max_diff) {
-            max_diff = abs(upd.jp[i] - read_goal[i]); 
-        }
-    }
+    for (int i = 0; i < 6; i++) if (abs(upd.jp[i] - read_goal[i]) > max_diff) max_diff = abs(upd.jp[i] - read_goal[i]); 
+       
     ROS_INFO("max_diff %f",max_diff);
 
     // prepare to send commands
@@ -110,6 +110,7 @@ int main(int argc, char **argv)
     for (int i = 0; i < 4; i++) joint_vel_values.data.push_back(result[12+i]);
     joint_vel_values.data.push_back(max_diff);
     upd.SendVelocity(joint_vel_values);
+
     loop_rate.sleep();
     ros::spinOnce();
   }

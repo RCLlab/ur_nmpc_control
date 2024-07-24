@@ -107,7 +107,7 @@ if __name__ == '__main__':
     i = 0
     save_iter = 0
     rate = rospy.Rate(20) #hz
-    term_mode = 'orig_ws/250ms/PTC'
+    term_mode = 'PTC'
     env = ENV(run_name,term_mode)
     env.reset()
     while not rospy.is_shutdown():

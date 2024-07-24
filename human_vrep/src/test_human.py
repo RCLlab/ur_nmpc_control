@@ -35,7 +35,7 @@ class ENV:
 if __name__ == '__main__':
     rospy.init_node("human_poses_provider", anonymous=True)
     env = ENV()
-    i = 10000
+    i = 1
     cond_temp=0
     rate = rospy.Rate(125) #hz
     msg = rospy.wait_for_message("/flag", Float64MultiArray)
@@ -44,7 +44,7 @@ if __name__ == '__main__':
             condition_h = env.check_condition()
             if condition_h[1]==1:
                 time.sleep(0.02)
-                i=10000
+                i=1
             else:
                 env.step(i)
                 print(condition_h,i)
